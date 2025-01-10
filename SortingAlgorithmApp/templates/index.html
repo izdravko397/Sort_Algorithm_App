@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Sorting Visualization</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        #chart { width: 100%; height: 400px; }
+        .slider-container { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Sorting Visualization</h1>
+    <div>
+        <label for="size">Array Size:</label>
+        <input type="range" id="size" min="10" max="200" value="50" step="1">
+        <span id="sizeValue">50</span>
+    </div>
+    <div class="slider-container">
+        <button onclick="startSorting()">Start Sorting</button>
+    </div>
+    <div id="chart"></div>
+
+    <script>
+        const sizeSlider = document.getElementById('size');
+        const sizeValue = document.getElementById('sizeValue');
+        sizeSlider.addEventListener('input', () => {
+            sizeValue.textContent = sizeSlider.value;
+        });
+
+        function startSorting() {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            fetch('/sort/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken // Добавяне на CSRF токена
+                },
+                body: 'size=' + sizeSlider.value
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Received data:", data); // Лог за получените данни
+                animateSorting(data);
+            })
+            .catch(error => {
+                console.error("Error in request:", error);
+            });
+        }
+        function animateSorting(steps) {
+            let stepIndex = 0;
+
+            function renderStep() {
+                const data = [{
+                    x: Array.from({ length: steps[stepIndex].length }, (_, i) => i),
+                    y: steps[stepIndex],
+                    type: 'bar',
+                    marker: { color: 'green' }
+                }];
+                const layout = {
+                    title: 'Sorting Visualization',
+                    xaxis: { title: 'Index' },
+                    yaxis: { title: 'Value' },
+                    margin: { t: 50 }
+                };
+                Plotly.newPlot('chart', data, layout);
+
+                stepIndex++;
+                if (stepIndex < steps.length) {
+                    setTimeout(renderStep, 100);
+                }
+            }
+
+            renderStep();
+        }
+    </script>
+</body>
+</html>
